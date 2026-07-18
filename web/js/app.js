@@ -18,6 +18,7 @@
       roomId = Room.generateRoomId();
       history.replaceState(null, '', '/s/' + roomId);
       document.body.classList.remove('editor-mode');
+      UI.generateQR(roomId);
     } else {
       document.body.classList.add('editor-mode');
       UI.hidePairing();

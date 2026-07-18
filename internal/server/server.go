@@ -36,7 +36,7 @@ func (a *App) Run() error {
 
 	mux.HandleFunc("/healthz", a.handleHealthz)
 	mux.HandleFunc("/s/ws", a.handleWS)
-	mux.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir("web"))))
+	mux.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir(config.WebDir))))
 
 	handler := a.recoverMiddleware(a.logMiddleware(a.rateLimitMiddleware(mux)))
 
