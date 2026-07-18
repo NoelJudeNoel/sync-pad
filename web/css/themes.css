@@ -1,5 +1,27 @@
-/* themes.css — theme-specific overrides */
+/* themes.css — theme-specific fine-tuning */
 
-/* Dark is default (see :root) */
-/* Light theme via [data-theme="light"] in base.css */
-/* System preference handled in JS (theme.js) */
+/* Smooth theme transitions */
+body,
+#bottom-bar,
+#editor,
+#pairing-screen {
+  transition: background-color 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Scrollbar styling */
+#editor::-webkit-scrollbar {
+  width: 4px;
+}
+
+#editor::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+#editor::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 2px;
+}
+
+[data-theme="light"] #editor::-webkit-scrollbar-thumb {
+  background: #ccc;
+}

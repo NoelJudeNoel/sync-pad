@@ -1,43 +1,79 @@
-/* components.css — buttons, links */
+/* components.css — icon buttons, links, refined */
+
+:root {
+  --btn-size: 36px;
+  --btn-icon: 16px;
+}
 
 /* Icon buttons */
 .bar-btn {
+  width: var(--btn-size);
+  height: var(--btn-size);
   background: transparent;
   border: none;
+  border-radius: 10px;
   color: var(--bar-fg);
-  padding: 6px 10px;
-  border-radius: var(--radius);
   cursor: pointer;
-  font-size: 15px;
-  white-space: nowrap;
+  font-size: var(--btn-icon);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.1s ease;
   line-height: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bar-btn:hover {
-  background: var(--bar-border);
+  background: rgba(255, 255, 255, 0.06);
   color: var(--fg);
 }
 
+[data-theme="light"] .bar-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
 .bar-btn:active {
-  transform: scale(0.94);
+  transform: scale(0.92);
+  background: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme="light"] .bar-btn:active {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+/* Theme button — larger touch target */
+#theme-btn {
+  font-size: 17px;
 }
 
 /* Text link */
 .bar-link {
-  color: var(--accent);
+  color: var(--bar-fg);
   text-decoration: none;
   white-space: nowrap;
   font-size: 12px;
-  padding: 6px 8px;
-  border-radius: var(--radius);
-  transition: background 0.15s;
+  font-weight: 450;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: color 0.2s ease, background 0.2s ease;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bar-link:hover {
-  background: var(--bar-border);
-  text-decoration: none;
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="light"] .bar-link:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* Cut/Copy — text-label style for clarity */
+#cut-btn, #copy-btn {
+  width: auto;
+  padding: 0 12px;
+  font-size: 12px;
+  font-weight: 500;
+  gap: 4px;
+  border-radius: 10px;
 }
