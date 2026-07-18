@@ -52,6 +52,8 @@
   flex-shrink: 0;
   user-select: none;
   min-height: 48px;
+  position: relative;
+  z-index: 60;
 }
 
 /* 移动端: 底部栏瘦身 */
@@ -92,7 +94,7 @@
   background: rgba(10, 10, 10, 0.95);
   color: var(--fg);
   z-index: 50;
-  padding: 24px;
+  padding: 24px 24px 70px;
   text-align: center;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);

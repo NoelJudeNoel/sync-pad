@@ -71,6 +71,7 @@
         document.body.classList.add('editor-mode');
         UI.hidePairing();
         UI.focusEditor();
+        history.pushState(null, '', '/s/' + roomId);
       }
       return;
     }
