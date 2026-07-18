@@ -83,7 +83,7 @@
 
     // Text update
     if (msg.d !== undefined) {
-      UI.applyRemoteText(msg.d);
+      UI.applyRemoteText(msg.d, msg.p);
     }
   }
 

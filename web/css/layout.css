@@ -54,6 +54,28 @@
   min-height: 48px;
 }
 
+/* 移动端: 底部栏瘦身 */
+@media (max-width: 767px) {
+  #bottom-bar {
+    padding: 4px 12px;
+    min-height: 0;
+    gap: 2px;
+  }
+  .bar-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+  }
+  #cut-btn, #copy-btn {
+    padding: 0 8px;
+    font-size: 11px;
+  }
+  .bar-link {
+    padding: 4px 8px;
+    font-size: 11px;
+  }
+}
+
 #bottom-bar .spacer {
   flex: 1;
   min-width: 4px;
@@ -85,6 +107,16 @@
   font-weight: 500;
   font-size: 24px;
   letter-spacing: -0.5px;
+}
+
+.pairing-logo {
+  width: 80px;
+  height: 80px;
+  border-radius: 18px;
+  margin-bottom: 16px;
+  object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 #pairing-screen .hint {

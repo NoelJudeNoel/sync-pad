@@ -49,19 +49,16 @@ const UI = (() => {
     });
   }
 
-  function applyRemoteText(text) {
+  function applyRemoteText(text, remotePos) {
     const ed = editor();
-    if (!ed || ed.value === text) return;
-
-    const start = ed.selectionStart;
-    const end = ed.selectionEnd;
-    const wasFocused = document.activeElement === ed;
+    if (!ed) return;
 
     isPeerUpdate = true;
     ed.value = text;
 
-    if (wasFocused) {
-      try { ed.setSelectionRange(Math.min(start, text.length), Math.min(end, text.length)); } catch(e) {}
+    if (remotePos !== undefined && typeof remotePos === 'number') {
+      const pos = Math.min(remotePos, text.length);
+      try { ed.setSelectionRange(pos, pos); } catch(e) {}
     }
     isPeerUpdate = false;
   }
