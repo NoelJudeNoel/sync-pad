@@ -1,30 +1,38 @@
-# Sync Pad — 实时同步文本框
+# 咕咕同步 — Sync Pad
 
-跨设备实时同步文本输入的极简工具。PC 生成二维码，手机扫码即连，两端输入实时同步。
+跨设备实时同步文本输入。PC 打开页面生成二维码，手机扫码即连，两端输入实时同步。
 
----
+手机靠近嘴边，小声使用任意输入法的语音输入功能，文字实时出现在 PC 上。
 
 ## 架构
 
 ```
-PC 浏览器 ──WSS──→ Nginx (eu-as.cn:443) ──反代──→ Node.js (:8080)
-手机浏览器 ──WSS──→ Nginx (eu-as.cn:443) ──反代──→ Node.js (:8080)
-                           ↓
-                    内存态房间管理 (纯转发，不落盘)
+PC 浏览器 ──WSS──→ Nginx (eu-as.cn:443) ──反代──→ Go sync-pad (:8080)
+手机浏览器 ──WSS──→ Nginx (eu-as.cn:443) ──反代──→ Go sync-pad (:8080)
+                            ↓
+                     内存态房间管理 (纯转发，不落盘)
 ```
 
----
+## 技术栈
 
-## 文件结构
+| 层 | 技术 |
+|---|---|
+| 后端 | Go 1.24+ (gorilla/websocket) |
+| 前端 | 纯 HTML/CSS/JS，零构建步骤 |
+| 部署 | 单二进制 + systemd + Nginx |
 
-| 文件 | 位置 | 用途 |
-|---|---|---|
-| `server.js` | `/opt/sync-server/server.js` | WebSocket 服务端，房间管理，心跳 |
-| `package.json` | `/opt/sync-server/package.json` | Node.js 依赖 (`ws`) |
-| `index.html` | `/var/www/sync-text/index.html` | 单页前端，含编辑器/配对/二维码/主题切换 |
-| Nginx 配置 | `/etc/nginx/sites-enabled/eu-as.cn` | 反代 `/s/` 静态 + `/s/ws` WebSocket |
+## 快速开始
 
----
+```bash
+# 运行
+make run
+
+# 测试
+make test
+
+# 构建
+make build
+```
 
 ## WebSocket 协议
 
@@ -50,99 +58,52 @@ PC 连接:        → (服务端推送当前文本) → 显示编辑器
 手机重连:       → PC 收到 {"t":"j"}    → 切回编辑模式
 ```
 
----
+## 安全
 
-## 服务端 (server.js)
-
-**启动**: `pm2 start /opt/sync-server/server.js --name sync-pad`
-
-### 关键机制
-
-| 机制 | 实现 |
+| 机制 | 参数 |
 |---|---|
-| 心跳 | 每 2s ping 所有客户端，无 pong 则 `terminate()` |
-| 房间管理 | `Map<roomId, {clients: Set<WebSocket>, text: string}>` |
-| 文本持久 | 每房间存最新文本，新连接自动推送 |
-| 加入通知 | 非首位连接者 → 广播 `{"t":"j"}` 给已有客户端 |
-| 离开通知 | 房间非空时 → 广播 `{"t":"l","c":N}` 给剩余客户端 |
-| 房间 ID 校验 | 正则 `/^[a-zA-Z0-9_-]{8,128}$/`，不合法则分配随机 hex |
+| 速率限制 | 10 conn/min, 100 msg/min per IP |
+| 消息大小上限 | 64KB |
+| 连接上限 | 500/节点 |
+| 房间 TTL | 30 分钟无活动自动清理 |
+| 心跳 | 30s ping, 60s pong 超时 |
+| Origin 校验 | 仅允许 eu-as.cn 域名 |
 
----
+## 部署
 
-## 前端 (index.html)
+### 环境要求
 
-单 HTML 文件，无框架依赖。外部 CDN 引用: `qrcodejs` (二维码生成)。
+- Linux (systemd)
+- Go 1.24+ (仅构建时需要)
+- Nginx (反代)
 
-### 页面状态机
+### 构建与部署
 
-```
-                        ┌─────────────┐
-                        │  配对页      │  (初始)
-                        │  显示二维码  │
-                        └──────┬──────┘
-                               │ 手机扫码加入 ({"t":"j"})
-                               ↓
-                        ┌─────────────┐
-                        │  编辑模式    │  ← 两端输入实时同步
-                        │  paired=true │
-                        └──────┬──────┘
-                               │ 手机断线 ({"t":"l","c":1})
-                               ↓
-                        ┌─────────────┐
-                        │  重配覆盖层  │  (保留编辑器内容)
-                        │  显示新二维码│
-                        └──────┬──────┘
-                               │ 手机重连 ({"t":"j"})
-                               ↓
-                        ┌─────────────┐
-                        │  编辑模式    │
-                        └─────────────┘
+```bash
+make build    # 输出 ./sync-pad 单二进制
+make deploy   # scp 到 abj 并重启服务
 ```
 
-### 状态变量
+### systemd
 
-| 变量 | 含义 |
-|---|---|
-| `connected` | WebSocket 连接状态（与服务器） |
-| `paired` | 是否已配对（≥2 人同房间） |
-| `isPairingMode` | 初始配对模式（PC 刚打开页面） |
-| `isRePairing` | 断线后重配模式 |
-| `isPeerUpdate` | 是否正在应用远端更新（防回响） |
+```ini
+[Unit]
+Description=Sync Pad WebSocket Server
+After=network.target
 
-### 底部栏元素
+[Service]
+Type=simple
+ExecStart=/opt/sync-server/sync-pad
+Restart=always
+RestartSec=3
 
-从左到右: `剪切` / `复制` / `主题切换(三态)` / `关于本站` / `备案号` / `公网安备号`
+[Install]
+WantedBy=multi-user.target
+```
 
-- 键盘弹出时：备案号隐藏，底部栏紧贴键盘上方 (`visualViewport` API)
-- 主题三态: system → dark → light → system
-
-### 其他特性
-
-| 特性 | 实现 |
-|---|---|
-| 唤醒锁 | `navigator.wakeLock.request('screen')`，防止手机息屏 |
-| 光标同步 | 发送端附带 `p` 字段，接收端 `setSelectionRange` |
-| 断连重连 | 3s 后自动重连 WebSocket |
-| 安全房间号 | `crypto.getRandomValues()` 生成 16 字节随机串 |
-| 二维码重配 | 手机断线后覆盖层展示新二维码，保留编辑器文本 |
-
----
-
-## 部署 (abj 主机)
-
-**SSH**: `ssh abj` (39.106.35.187, root)
-
-| 路径 | 说明 |
-|---|---|
-| `/opt/sync-server/server.js` | 服务端代码 |
-| `/opt/sync-server/node_modules/` | npm 依赖 |
-| `/var/www/sync-text/index.html` | 前端页面 |
-| `/etc/nginx/sites-enabled/eu-as.cn` | Nginx 配置 |
-
-### Nginx 关键配置
+### Nginx
 
 ```nginx
-# WebSocket 反代
 location /s/ws {
     proxy_pass http://127.0.0.1:8080;
     proxy_http_version 1.1;
@@ -152,35 +113,30 @@ location /s/ws {
     proxy_read_timeout 86400s;
 }
 
-# 静态文件 + SPA 回退
 location /s/ {
     alias /var/www/sync-text/;
     index index.html;
-    try_files $uri /s/index.html;
 }
 ```
 
-### 运维命令
+## 项目结构
 
-```bash
-# 重启服务
-pm2 restart sync-pad
-
-# 查看日志
-pm2 logs sync-pad
-
-# 部署前端（本机 → abj）
-scp index.html abj:/var/www/sync-text/
-
-# 部署后端（本机 → abj）
-scp server.js abj:/opt/sync-server/
-ssh abj "pm2 restart sync-pad"
-
-# 重载 Nginx
-ssh abj "nginx -t && nginx -s reload"
 ```
-
----
+sync-speech/
+├── cmd/server/main.go              # 入口
+├── internal/
+│   ├── server/                     # HTTP + WS 服务
+│   ├── room/                       # 房间管理
+│   ├── ratelimit/                  # IP 级速率限制
+│   └── config/                     # 配置常量
+├── web/                            # 前端静态文件
+│   ├── index.html
+│   ├── css/                        # base/layout/components/themes
+│   ├── js/                         # app/room/theme/websocket/ui
+│   └── assets/
+├── Makefile
+└── README.md
+```
 
 ## 访问
 
@@ -189,12 +145,6 @@ ssh abj "nginx -t && nginx -s reload"
 | 默认配对页 | `https://eu-as.cn/s/` |
 | 指定房间 | `https://eu-as.cn/s/<roomId>` |
 
----
+## 许可
 
-## 可能的扩展方向
-
-- **历史版本**: 服务端定时落盘 MySQL/PostgreSQL
-- **PWA**: 添加 manifest.json，手机可添加到桌面
-- **同步光标**: 当前是全量文本+光标位置，可引入 OT 算法
-- **多端冲突**: 目前最后写入覆盖，概率低可接受
-- **WebRTC**: 点对点传输降低服务端负载
+MIT License
