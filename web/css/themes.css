@@ -1,0 +1,5 @@
+/* themes.css — theme-specific overrides */
+
+/* Dark is default (see :root) */
+/* Light theme via [data-theme="light"] in base.css */
+/* System preference handled in JS (theme.js) */

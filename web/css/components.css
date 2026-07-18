@@ -1,0 +1,43 @@
+/* components.css — buttons, links */
+
+/* Icon buttons */
+.bar-btn {
+  background: transparent;
+  border: none;
+  color: var(--bar-fg);
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 15px;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+  line-height: 1;
+}
+
+.bar-btn:hover {
+  background: var(--bar-border);
+  color: var(--fg);
+}
+
+.bar-btn:active {
+  transform: scale(0.94);
+}
+
+/* Text link */
+.bar-link {
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  transition: background 0.15s;
+}
+
+.bar-link:hover {
+  background: var(--bar-border);
+  text-decoration: none;
+}

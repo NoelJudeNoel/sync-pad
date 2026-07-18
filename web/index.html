@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>咕咕同步</title>
+<link rel="stylesheet" href="/s/css/base.css">
+<link rel="stylesheet" href="/s/css/layout.css">
+<link rel="stylesheet" href="/s/css/components.css">
+<link rel="stylesheet" href="/s/css/themes.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+
+<textarea id="editor" autofocus placeholder="开始输入..."></textarea>
+<div id="status">○</div>
+
+<div id="pairing-screen" class="show">
+  <h2>📡 咕咕同步</h2>
+  <div class="hint">手机扫码即可加入同一房间</div>
+  <div id="qrcode"></div>
+  <div class="status-text" id="pairStatus">等待连接...</div>
+</div>
+
+<div id="bottom-bar">
+  <button class="bar-btn" id="cut-btn" title="剪切">✂</button>
+  <button class="bar-btn" id="copy-btn" title="复制">📋</button>
+  <button class="bar-btn" id="theme-btn" title="切换主题">🌙</button>
+  <a class="bar-link" href="https://eu-as.cn/2026/02/%e6%ac%a2%e8%bf%8e%e6%9d%a5%e5%88%b0%e4%b8%aa%e4%ba%baai%e8%a7%86%e8%a7%a3%e5%b0%8f%e7%ab%99/" target="_blank">关于</a>
+  <div class="spacer"></div>
+  <span class="bar-meta">京ICP备2025154830号-3</span>
+  <span class="bar-meta">京公网安备11011202101615号</span>
+</div>
+
+<script src="/s/js/room.js"></script>
+<script src="/s/js/theme.js"></script>
+<script src="/s/js/websocket.js"></script>
+<script src="/s/js/ui.js"></script>
+<script src="/s/js/app.js"></script>
+</body>
+</html>
