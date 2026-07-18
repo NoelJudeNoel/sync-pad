@@ -8,8 +8,8 @@ const (
 	MaxConnections  = 500
 	RoomTTL         = 30 * time.Minute
 	WriteTimeout    = 10 * time.Second
-	PongWait        = 60 * time.Second
-	PingPeriod      = 30 * time.Second
+	PongWait        = 6 * time.Second
+	PingPeriod      = 3 * time.Second
 	CleanupInterval = 5 * time.Minute
 
 	RateLimitConnsPerMin    = 10

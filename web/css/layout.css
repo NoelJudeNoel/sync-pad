@@ -126,7 +126,14 @@
   display: block;
 }
 
-/* Keyboard open adjustments */
+/* Mobile: 备案号永远不显示（手机端无意义） */
+@media (max-width: 767px) {
+  .bar-meta {
+    display: none !important;
+  }
+}
+
+/* 键盘升起: 备案号隐藏, 底部栏浮动 */
 .keyboard-open .bar-meta {
   display: none !important;
 }
