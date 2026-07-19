@@ -76,6 +76,15 @@
     padding: 4px 8px;
     font-size: 11px;
   }
+  /* 移动端: 关于 / GitHub 等文字链接隐藏，只留图标按钮 */
+  .bar-link {
+    display: none !important;
+  }
+  /* 移动端: 配对页 logo 缩小，避免占满屏幕 */
+  .pairing-logo {
+    max-width: 140px;
+    max-height: 56px;
+  }
 }
 
 #bottom-bar .spacer {
