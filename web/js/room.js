@@ -1,9 +1,28 @@
 // room.js — room ID generation and URL routing
 
 const Room = (() => {
+  function basePath() {
+    const meta = document.querySelector('meta[name="base-path"]');
+    if (meta && meta.content) {
+      return meta.content.replace(/\/+$/, '');
+    }
+    return '';
+  }
+
   function getPathRoom() {
-    const parts = window.location.pathname.split('/');
-    if (parts.length >= 3 && parts[1] === 's' && parts[2]) return parts[2];
+    const base = basePath();
+    const parts = window.location.pathname.replace(/^\//, '').split('/');
+    const baseParts = base.replace(/^\//, '').split('/');
+
+    // Strip base prefix, next segment is room ID (if present)
+    let i = 0;
+    while (i < baseParts.length && i < parts.length && parts[i] === baseParts[i]) {
+      i++;
+    }
+
+    if (i === baseParts.length && parts[i]) {
+      return parts[i];
+    }
     return '';
   }
 
@@ -16,5 +35,5 @@ const Room = (() => {
     return id;
   }
 
-  return { getPathRoom, generateRoomId };
+  return { getPathRoom, generateRoomId, basePath };
 })();

@@ -9,45 +9,60 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/eu-as/sync-speech/internal/config"
-	"github.com/eu-as/sync-speech/internal/ratelimit"
-	"github.com/eu-as/sync-speech/internal/room"
+	"github.com/NoelJudeNoel/sync-pad/internal/config"
+	"github.com/NoelJudeNoel/sync-pad/internal/ratelimit"
+	"github.com/NoelJudeNoel/sync-pad/internal/room"
+	"golang.org/x/time/rate"
 )
 
 type App struct {
+	cfg       config.Config
 	rooms     *room.Manager
 	ws        *Server
 	connLimit *ratelimit.Limiter
 	msgLimit  *ratelimit.Limiter
 }
 
-func NewApp() *App {
-	rooms := room.NewManager()
+func NewApp(cfg config.Config) *App {
+	rooms := room.NewManager(cfg.RoomTTL, cfg.CleanupInterval)
 	return &App{
+		cfg:       cfg,
 		rooms:     rooms,
-		ws:        New(rooms),
-		connLimit: ratelimit.New(10, 5),    // 10/min, burst 5
-		msgLimit:  ratelimit.New(100, 20),  // 100/min, burst 20
+		ws:        New(rooms, cfg),
+		connLimit: ratelimit.New(rate.Limit(cfg.RateLimitConns), cfg.RateLimitConns/2),
+		msgLimit:  ratelimit.New(rate.Limit(cfg.RateLimitMessages), cfg.RateLimitMessages/5),
 	}
 }
 
 func (a *App) Run() error {
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/healthz", a.handleHealthz)
-	mux.HandleFunc("/s/ws", a.handleWS)
-	mux.Handle("/s/", http.StripPrefix("/s/", http.FileServer(http.Dir(config.WebDir))))
+	base := a.cfg.BasePath
+	wsPath := base + "/ws"
+	healthPath := "/healthz"
+
+	mux.HandleFunc(healthPath, a.handleHealthz)
+	mux.HandleFunc(wsPath, a.handleWS)
+
+	// Static files served under the base path.
+	fs := http.StripPrefix(base+"/", http.FileServer(http.Dir(a.cfg.WebDir)))
+	mux.Handle(base+"/", fs)
 
 	handler := a.recoverMiddleware(a.logMiddleware(a.rateLimitMiddleware(mux)))
 
 	srv := &http.Server{
-		Addr:    ":8080",
+		Addr:    a.cfg.Port,
 		Handler: handler,
 	}
 
 	go func() {
-		slog.Info("sync-pad server starting", "port", config.Port)
-		if err := srv.ListenAndServe(); err != http.ErrServerClosed {
+		slog.Info("sync-pad server starting",
+			"addr", a.cfg.Port,
+			"ws", wsPath,
+			"base", base,
+			"webdir", a.cfg.WebDir,
+		)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			slog.Error("server error", "error", err)
 			os.Exit(1)
 		}
@@ -98,16 +113,16 @@ func (a *App) logMiddleware(next http.Handler) http.Handler {
 }
 
 func (a *App) rateLimitMiddleware(next http.Handler) http.Handler {
+	wsPath := a.cfg.BasePath + "/ws"
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := ratelimit.ExtractIP(r)
-		if r.URL.Path == "/s/ws" {
+		if r.URL.Path == wsPath {
 			if !a.connLimit.Allow(ip) {
 				slog.Warn("rate limit hit (conn)", "ip", ip)
 				http.Error(w, "Too Many Requests", http.StatusTooManyRequests)
 				return
 			}
 		}
-		// Message rate limiting is done per-connection in the WS handler
 		next.ServeHTTP(w, r)
 	})
 }

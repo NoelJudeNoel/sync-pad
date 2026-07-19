@@ -6,7 +6,7 @@ import (
 )
 
 func TestRoomAddRemoveClient(t *testing.T) {
-	r := NewRoom("test-room")
+	r := NewRoom("test-room", 0)
 	c1 := &Client{}
 	c2 := &Client{}
 
@@ -27,7 +27,7 @@ func TestRoomAddRemoveClient(t *testing.T) {
 }
 
 func TestRoomText(t *testing.T) {
-	r := NewRoom("test-room")
+	r := NewRoom("test-room", 0)
 	r.SetText("hello")
 	if r.GetText() != "hello" {
 		t.Fatalf("expected 'hello', got '%s'", r.GetText())
@@ -35,7 +35,7 @@ func TestRoomText(t *testing.T) {
 }
 
 func TestRoomExpiry(t *testing.T) {
-	r := NewRoom("test-room")
+	r := NewRoom("test-room", 0)
 	r.Expiry = time.Now().Add(-1 * time.Minute)
 
 	if time.Now().Before(r.Expiry) {
@@ -44,7 +44,7 @@ func TestRoomExpiry(t *testing.T) {
 }
 
 func TestManagerGetOrCreate(t *testing.T) {
-	m := NewManager()
+	m := NewManager(0, 0)
 
 	r1 := m.GetOrCreate("room-a")
 	r2 := m.GetOrCreate("room-a")
@@ -58,7 +58,7 @@ func TestManagerGetOrCreate(t *testing.T) {
 }
 
 func TestManagerDelete(t *testing.T) {
-	m := NewManager()
+	m := NewManager(0, 0)
 
 	m.GetOrCreate("room-b")
 	m.Delete("room-b")

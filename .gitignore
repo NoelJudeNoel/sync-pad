@@ -12,3 +12,4 @@ Thumbs.db
 # Local env
 .env
 .env.local
+deploy/sync-pad.env

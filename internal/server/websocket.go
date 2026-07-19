@@ -8,32 +8,35 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/eu-as/sync-speech/internal/config"
-	"github.com/eu-as/sync-speech/internal/room"
+	"github.com/NoelJudeNoel/sync-pad/internal/config"
+	"github.com/NoelJudeNoel/sync-pad/internal/room"
 	"github.com/gorilla/websocket"
 )
 
 var roomIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,128}$`)
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		origin := r.Header.Get("Origin")
-		return origin == "" || origin == "https://eu-as.cn" || origin == "http://localhost"
-	},
-}
-
 type Server struct {
-	rooms *room.Manager
+	rooms    *room.Manager
+	cfg      config.Config
+	upgrader websocket.Upgrader
 }
 
-func New(rooms *room.Manager) *Server {
-	return &Server{rooms: rooms}
+func New(rooms *room.Manager, cfg config.Config) *Server {
+	return &Server{
+		rooms: rooms,
+		cfg:   cfg,
+		upgrader: websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin: func(r *http.Request) bool {
+				return cfg.IsOriginAllowed(r.Header.Get("Origin"))
+			},
+		},
+	}
 }
 
 func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Warn("ws upgrade failed", "error", err)
 		return
@@ -74,11 +77,11 @@ func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
 func (s *Server) readPump(c *room.Client, conn *websocket.Conn) {
 	defer s.disconnect(c)
 
-	conn.SetReadLimit(config.MaxMessageSize)
-	conn.SetReadDeadline(time.Now().Add(config.PongWait))
+	conn.SetReadLimit(s.cfg.MaxMessageSize)
+	conn.SetReadDeadline(time.Now().Add(s.cfg.PongWait))
 	conn.SetPongHandler(func(string) error {
 		c.LastPong = time.Now()
-		conn.SetReadDeadline(time.Now().Add(config.PongWait))
+		conn.SetReadDeadline(time.Now().Add(s.cfg.PongWait))
 		return nil
 	})
 
@@ -109,13 +112,13 @@ func (s *Server) readPump(c *room.Client, conn *websocket.Conn) {
 }
 
 func (s *Server) writePump(c *room.Client, conn *websocket.Conn) {
-	ticker := time.NewTicker(config.PingPeriod)
+	ticker := time.NewTicker(s.cfg.PingPeriod)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case msg, ok := <-c.Send:
-			conn.SetWriteDeadline(time.Now().Add(config.WriteTimeout))
+			conn.SetWriteDeadline(time.Now().Add(s.cfg.WriteTimeout))
 			if !ok {
 				conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
@@ -125,11 +128,11 @@ func (s *Server) writePump(c *room.Client, conn *websocket.Conn) {
 			}
 
 		case <-ticker.C:
-			conn.SetWriteDeadline(time.Now().Add(config.WriteTimeout))
+			conn.SetWriteDeadline(time.Now().Add(s.cfg.WriteTimeout))
 			if err := conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
-			if time.Since(c.LastPong) > config.PongWait {
+			if time.Since(c.LastPong) > s.cfg.PongWait {
 				return
 			}
 		}

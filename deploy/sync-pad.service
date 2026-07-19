@@ -4,11 +4,12 @@ After=network.target
 
 [Service]
 Type=simple
-ExecStart=/opt/sync-server/sync-pad
+ExecStart=/usr/local/bin/sync-pad
 Restart=always
 RestartSec=3
 StandardOutput=journal
 StandardError=journal
+EnvironmentFile=-/etc/sync-pad/env
 
 [Install]
 WantedBy=multi-user.target

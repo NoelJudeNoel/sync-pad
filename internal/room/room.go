@@ -17,13 +17,18 @@ type Room struct {
 	Text    string
 	mu      sync.RWMutex
 	Expiry  time.Time
+	ttl     time.Duration
 }
 
-func NewRoom(id string) *Room {
+func NewRoom(id string, ttl time.Duration) *Room {
+	if ttl <= 0 {
+		ttl = 30 * time.Minute
+	}
 	return &Room{
 		ID:      id,
 		clients: make(map[*Client]struct{}),
-		Expiry:  time.Now().Add(30 * time.Minute),
+		Expiry:  time.Now().Add(ttl),
+		ttl:     ttl,
 	}
 }
 
@@ -31,14 +36,14 @@ func (r *Room) AddClient(c *Client) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.clients[c] = struct{}{}
-	r.Expiry = time.Now().Add(30 * time.Minute)
+	r.Expiry = time.Now().Add(r.ttl)
 }
 
 func (r *Room) RemoveClient(c *Client) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	delete(r.clients, c)
-	r.Expiry = time.Now().Add(30 * time.Minute)
+	r.Expiry = time.Now().Add(r.ttl)
 }
 
 func (r *Room) ClientCount() int {
@@ -57,7 +62,7 @@ func (r *Room) SetText(text string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.Text = text
-	r.Expiry = time.Now().Add(30 * time.Minute)
+	r.Expiry = time.Now().Add(r.ttl)
 }
 
 func (r *Room) Broadcast(sender *Client, msg []byte) {
@@ -83,5 +88,3 @@ func (r *Room) BroadcastAll(msg []byte) {
 		}
 	}
 }
-
-

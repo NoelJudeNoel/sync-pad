@@ -5,8 +5,8 @@
 ## 本地运行
 
 ```bash
-git clone https://github.com/eu-as/sync-speech.git
-cd sync-speech
+git clone https://github.com/NoelJudeNoel/sync-pad.git
+cd sync-pad
 make run
 ```
 

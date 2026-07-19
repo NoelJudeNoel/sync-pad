@@ -9,7 +9,8 @@ const WS = (() => {
 
   function connect(roomId) {
     const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const url = `${proto}://${window.location.host}/s/ws?room=${roomId}`;
+    const base = Room.basePath();
+    const url = `${proto}://${window.location.host}${base}/ws?room=${roomId}`;
     ws = new WebSocket(url);
 
     ws.onopen = () => {

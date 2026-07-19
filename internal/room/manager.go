@@ -7,13 +7,23 @@ import (
 )
 
 type Manager struct {
-	rooms map[string]*Room
-	mu    sync.RWMutex
+	rooms           map[string]*Room
+	mu              sync.RWMutex
+	roomTTL         time.Duration
+	cleanupInterval time.Duration
 }
 
-func NewManager() *Manager {
+func NewManager(roomTTL, cleanupInterval time.Duration) *Manager {
 	m := &Manager{
-		rooms: make(map[string]*Room),
+		rooms:           make(map[string]*Room),
+		roomTTL:         roomTTL,
+		cleanupInterval: cleanupInterval,
+	}
+	if roomTTL <= 0 {
+		m.roomTTL = 30 * time.Minute
+	}
+	if cleanupInterval <= 0 {
+		m.cleanupInterval = 5 * time.Minute
 	}
 	go m.cleanupLoop()
 	return m
@@ -27,7 +37,7 @@ func (m *Manager) GetOrCreate(roomID string) *Room {
 		return r
 	}
 
-	r := NewRoom(roomID)
+	r := NewRoom(roomID, m.roomTTL)
 	m.rooms[roomID] = r
 	slog.Info("room created", "room", roomID)
 	return r
@@ -47,7 +57,7 @@ func (m *Manager) RoomCount() int {
 }
 
 func (m *Manager) cleanupLoop() {
-	ticker := time.NewTicker(5 * time.Minute)
+	ticker := time.NewTicker(m.cleanupInterval)
 	defer ticker.Stop()
 
 	for range ticker.C {

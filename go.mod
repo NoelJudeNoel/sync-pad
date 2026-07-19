@@ -1,4 +1,4 @@
-module github.com/eu-as/sync-speech
+module github.com/NoelJudeNoel/sync-pad
 
 go 1.24.4
 

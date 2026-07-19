@@ -38,7 +38,8 @@ const UI = (() => {
     const container = qrcodeContainer();
     if (!container) return;
     container.innerHTML = '';
-    const qrUrl = window.location.origin + '/s/' + roomId;
+    const base = Room.basePath();
+    const qrUrl = window.location.origin + base + '/' + roomId;
     qrCode = new QRCode(container, {
       text: qrUrl,
       width: 180,
