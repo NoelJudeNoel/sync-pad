@@ -8,8 +8,15 @@
   --bar-border: #2a2a2a;
   --status-on: #4caf50;
   --status-off: #f44336;
-  --accent: #4fc3f7;
   --radius: 10px;
+
+  /* Brand system — single source of truth */
+  --brand: #7EC6BC;          /* logo teal */
+  --brand-deep: #449287;     /* pair gradient end */
+  --brand-grad: linear-gradient(180deg, var(--brand) 0%, var(--brand-deep) 100%);
+  --accent: var(--brand);    /* LOCKED: kill #4fc3f7 (blue) */
+  --pairing-bg: #0a0a0a;     /* pairing screen always dark */
+  --pairing-fg: #f5f5f5;
 }
 
 [data-theme="light"] {
