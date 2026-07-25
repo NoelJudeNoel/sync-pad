@@ -156,6 +156,7 @@
   display: block;
   height: var(--name-h-desktop);
   width: auto;
+  filter: blur(0.4px) contrast(1.06);
 }
 
 #pairing-screen .hint {
