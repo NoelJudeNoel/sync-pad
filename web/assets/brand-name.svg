@@ -5,8 +5,8 @@
       <stop offset="1" stop-color="#449287"/>
     </linearGradient>
     <filter id="soft" x="-5%" y="-5%" width="110%" height="110%">
-      <feMorphology operator="dilate" radius="12" result="expanded"/>
-      <feMorphology operator="erode" radius="12" in="expanded"/>
+      <feMorphology operator="dilate" radius="80" result="expanded"/>
+      <feMorphology operator="erode" radius="80" in="expanded"/>
     </filter>
   </defs>
   <g transform="translate(0,969) scale(1,-1)" fill="url(#ggGrad)" filter="url(#soft)">
