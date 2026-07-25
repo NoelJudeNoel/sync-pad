@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/NoelJudeNoel/sync-pad/internal/config"
+	"github.com/NoelJudeNoel/sync-pad/internal/ratelimit"
 	"github.com/NoelJudeNoel/sync-pad/internal/room"
 	"github.com/gorilla/websocket"
 )
@@ -18,13 +19,15 @@ var roomIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]{8,128}$`)
 type Server struct {
 	rooms    *room.Manager
 	cfg      config.Config
+	msgLimit *ratelimit.Limiter
 	upgrader websocket.Upgrader
 }
 
-func New(rooms *room.Manager, cfg config.Config) *Server {
+func New(rooms *room.Manager, cfg config.Config, msgLimit *ratelimit.Limiter) *Server {
 	return &Server{
-		rooms: rooms,
-		cfg:   cfg,
+		rooms:    rooms,
+		cfg:      cfg,
+		msgLimit: msgLimit,
 		upgrader: websocket.Upgrader{
 			ReadBufferSize:  1024,
 			WriteBufferSize: 1024,
@@ -36,6 +39,12 @@ func New(rooms *room.Manager, cfg config.Config) *Server {
 }
 
 func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
+	if s.rooms.TotalClientCount() >= s.cfg.MaxConnections {
+		slog.Warn("max connections reached", "total", s.rooms.TotalClientCount())
+		http.Error(w, "Service Unavailable", http.StatusServiceUnavailable)
+		return
+	}
+
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Warn("ws upgrade failed", "error", err)
@@ -49,10 +58,12 @@ func (s *Server) HandleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	rm := s.rooms.GetOrCreate(roomID)
+	ip := ratelimit.ExtractIP(r)
 	client := &room.Client{
 		Room:     rm,
 		Send:     make(chan []byte, 16),
 		LastPong: time.Now(),
+		IP:       ip,
 	}
 
 	rm.AddClient(client)
@@ -89,6 +100,13 @@ func (s *Server) readPump(c *room.Client, conn *websocket.Conn) {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
 			break
+		}
+
+		if !s.msgLimit.Allow(c.IP) {
+			slog.Warn("rate limit hit (msg)", "room", c.Room.ID, "ip", c.IP)
+			conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(1008, "Policy Violation: rate limit"))
+			return
 		}
 
 		var msg struct {

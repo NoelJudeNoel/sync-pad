@@ -1,6 +1,8 @@
 package room
 
 import (
+	"encoding/json"
+	"log/slog"
 	"sync"
 	"time"
 )
@@ -9,6 +11,7 @@ type Client struct {
 	Room     *Room
 	Send     chan []byte
 	LastPong time.Time
+	IP       string
 }
 
 type Room struct {
@@ -73,6 +76,12 @@ func (r *Room) Broadcast(sender *Client, msg []byte) {
 			select {
 			case c.Send <- msg:
 			default:
+				slog.Warn("client send buffer full, triggering resync", "room", r.ID, "client_ip", c.IP)
+				syncMsg, _ := json.Marshal(map[string]string{"d": r.Text})
+				select {
+				case c.Send <- syncMsg:
+				default:
+				}
 			}
 		}
 	}
@@ -85,6 +94,12 @@ func (r *Room) BroadcastAll(msg []byte) {
 		select {
 		case c.Send <- msg:
 		default:
+			slog.Warn("client send buffer full, triggering resync", "room", r.ID, "client_ip", c.IP)
+			syncMsg, _ := json.Marshal(map[string]string{"d": r.Text})
+			select {
+			case c.Send <- syncMsg:
+			default:
+			}
 		}
 	}
 }

@@ -56,6 +56,16 @@ func (m *Manager) RoomCount() int {
 	return len(m.rooms)
 }
 
+func (m *Manager) TotalClientCount() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	total := 0
+	for _, r := range m.rooms {
+		total += r.ClientCount()
+	}
+	return total
+}
+
 func (m *Manager) cleanupLoop() {
 	ticker := time.NewTicker(m.cleanupInterval)
 	defer ticker.Stop()

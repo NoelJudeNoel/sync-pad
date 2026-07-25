@@ -11,4 +11,6 @@ COPY --from=builder /app/sync-pad /usr/local/bin/
 COPY --from=builder /app/web /var/www/sync-pad
 EXPOSE 8080
 ENV SYNC_PAD_WEB_DIR=/var/www/sync-pad
+ENV SYNC_PAD_ALLOWED_ORIGINS=""
+HEALTHCHECK --interval=30s --timeout=3s CMD wget -q -O- http://localhost:8080/healthz || exit 1
 CMD ["sync-pad"]

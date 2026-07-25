@@ -25,12 +25,13 @@ type App struct {
 
 func NewApp(cfg config.Config) *App {
 	rooms := room.NewManager(cfg.RoomTTL, cfg.CleanupInterval)
+	msgLimit := ratelimit.New(rate.Limit(cfg.RateLimitMessages), cfg.RateLimitMessages/5)
 	return &App{
 		cfg:       cfg,
 		rooms:     rooms,
-		ws:        New(rooms, cfg),
+		ws:        New(rooms, cfg, msgLimit),
 		connLimit: ratelimit.New(rate.Limit(cfg.RateLimitConns), cfg.RateLimitConns/2),
-		msgLimit:  ratelimit.New(rate.Limit(cfg.RateLimitMessages), cfg.RateLimitMessages/5),
+		msgLimit:  msgLimit,
 	}
 }
 
