@@ -11,6 +11,21 @@ const UI = (() => {
   let isPeerUpdate = false;
   let debounceTimer = null;
   let wakeLock = null;
+  let pendingRemote = null;   // {text, remotePos} queued while a local selection is active
+  let pendingRemoteTimer = null;
+
+  // If the user leaves a selection sitting untouched, don't withhold
+  // remote updates forever — apply after this cap even without a
+  // selectionchange/mouseup signal, so the pad never goes silently stale.
+  const PENDING_REMOTE_MAX_DELAY_MS = 8000;
+
+  // Heuristic warning threshold in JS string length (chars, not bytes).
+  // Backend default is SYNC_PAD_MAX_MESSAGE_SIZE = 64KB on the raw JSON
+  // frame; multi-byte (e.g. CJK) text can exceed that well before 64000
+  // characters, so this is a conservative early warning, not a hard limit
+  // enforced client-side. The server is still the source of truth and will
+  // reject/log oversized frames on its own.
+  const LENGTH_WARN_THRESHOLD = 30000;
 
   function setStatus(on) {
     const el = status();
@@ -50,7 +65,7 @@ const UI = (() => {
     });
   }
 
-  function applyRemoteText(text, remotePos) {
+  function doApplyRemoteText(text, remotePos) {
     const ed = editor();
     if (!ed) return;
 
@@ -62,6 +77,37 @@ const UI = (() => {
       try { ed.setSelectionRange(pos, pos); } catch(e) {}
     }
     isPeerUpdate = false;
+  }
+
+  function flushPendingRemote() {
+    if (!pendingRemote) return;
+    clearTimeout(pendingRemoteTimer);
+    pendingRemoteTimer = null;
+    const { text, remotePos } = pendingRemote;
+    pendingRemote = null;
+    doApplyRemoteText(text, remotePos);
+  }
+
+  // Remote updates normally overwrite the textarea outright. But if the
+  // user currently has an active (non-collapsed) selection — the exact
+  // moment right before a manual copy — overwriting would silently drop
+  // their selection and relocate the caret. Instead, queue the latest
+  // incoming update and apply it once the selection collapses (selection
+  // cleared, or the user clicks/types elsewhere), capped at
+  // PENDING_REMOTE_MAX_DELAY_MS so the pad can't go stale indefinitely.
+  function applyRemoteText(text, remotePos) {
+    const ed = editor();
+    if (!ed) return;
+
+    if (ed.selectionStart !== ed.selectionEnd) {
+      pendingRemote = { text, remotePos };
+      if (!pendingRemoteTimer) {
+        pendingRemoteTimer = setTimeout(flushPendingRemote, PENDING_REMOTE_MAX_DELAY_MS);
+      }
+      return;
+    }
+
+    doApplyRemoteText(text, remotePos);
   }
 
   function getEditorText() {
@@ -83,6 +129,16 @@ const UI = (() => {
     debounceTimer = setTimeout(() => {
       callback();
     }, 200);
+  }
+
+  function checkTextLength(text) {
+    const el = status();
+    if (!el) return;
+    if (text.length > LENGTH_WARN_THRESHOLD) {
+      el.classList.add('status-warn');
+    } else {
+      el.classList.remove('status-warn');
+    }
   }
 
   function focusEditor() {
@@ -142,10 +198,22 @@ const UI = (() => {
     });
   }
 
+  // Selection may collapse via mouse, keyboard, or focus loss — 'selectionchange'
+  // covers all of these, so it's the single hook needed to release a
+  // deferred remote update once the user is done selecting.
+  document.addEventListener('selectionchange', () => {
+    if (!pendingRemote) return;
+    const ed = editor();
+    if (ed && document.activeElement === ed && ed.selectionStart !== ed.selectionEnd) {
+      return; // still actively selecting, keep waiting
+    }
+    flushPendingRemote();
+  });
+
   return {
     setStatus, setPairStatus, showPairing, hidePairing, generateQR,
     applyRemoteText, getEditorText, getEditorCursor, isPeerUpdateActive,
-    sendIfDirty, focusEditor, selectEditorAll, setCursorToEnd,
+    sendIfDirty, checkTextLength, focusEditor, selectEditorAll, setCursorToEnd,
     requestWakeLock, releaseWakeLock,
     setupKeyboardHandler, setupVisibilityHandler
   };

@@ -27,11 +27,16 @@ const Room = (() => {
   }
 
   function generateRoomId() {
+    // 32-character alphabet (a-z + 2-7, RFC4648 base32 lowercase) so that
+    // 256 % 32 === 0 — masking with & 31 maps each random byte onto the
+    // alphabet with zero bias. The previous 37-char alphabet ('a-z0-9')
+    // didn't divide 256 evenly, over-representing the first 34 characters.
+    // Mirrors the server's fallback generator in websocket.go.
     const bytes = new Uint8Array(16);
     crypto.getRandomValues(bytes);
+    const chars = 'abcdefghijklmnopqrstuvwxyz234567';
     let id = '';
-    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    for (let i = 0; i < 16; i++) id += chars[bytes[i] % chars.length];
+    for (let i = 0; i < 16; i++) id += chars[bytes[i] & 31];
     return id;
   }
 

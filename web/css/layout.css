@@ -33,8 +33,9 @@
   outline: none;
   padding: 24px 20px;
   font-size: 16px;
-  line-height: 1.7;
-  font-family: "SF Mono", "Cascadia Code", "Fira Code", monospace;
+  line-height: 1.75;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Segoe UI",
+    "Microsoft YaHei", "Helvetica Neue", Arial, sans-serif;
   caret-color: var(--accent);
 }
 
@@ -47,6 +48,10 @@
 }
 
 /* Status indicator */
+#status.status-warn {
+  color: var(--status-warn) !important;
+}
+
 #status {
   position: fixed;
   top: 14px;

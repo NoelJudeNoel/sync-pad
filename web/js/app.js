@@ -104,6 +104,7 @@
 
     ed.addEventListener('input', () => {
       if (UI.isPeerUpdateActive()) return;
+      UI.checkTextLength(UI.getEditorText());
       UI.sendIfDirty(() => {
         WS.send(JSON.stringify({
           p: UI.getEditorCursor(),

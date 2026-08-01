@@ -2,6 +2,7 @@ package server
 
 import (
 	"crypto/rand"
+	"encoding/base32"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -172,13 +173,20 @@ func (s *Server) disconnect(c *room.Client) {
 	}
 }
 
+// roomIDEncoding produces lowercase, unpadded base32 room IDs. Unlike a
+// naive modulo-36 mapping over random bytes (256 % 36 != 0, which biases
+// the first few characters of the alphabet by ~11%), base32 maps 5 bits of
+// entropy directly onto each output character with no bias.
+var roomIDEncoding = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
+
 func generateRoomID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-	result := make([]byte, 16)
-	for i := range b {
-		result[i] = chars[b[i]%byte(len(chars))]
+	// 10 random bytes -> 16 base32 characters, matching the previous ID length.
+	b := make([]byte, 10)
+	if _, err := rand.Read(b); err != nil {
+		// crypto/rand.Read only fails if the OS entropy source is
+		// unavailable, which is unrecoverable; fail loudly rather than
+		// silently handing out a predictable room ID.
+		panic("sync-pad: failed to read random bytes for room ID: " + err.Error())
 	}
-	return string(result)
+	return roomIDEncoding.EncodeToString(b)
 }
